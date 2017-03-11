@@ -1,0 +1,115 @@
+---
+title: "Pantomime"
+author: "Alex Albury"
+date: "March 10, 2017"
+output: html_document
+---
+
+```{r}
+#load packages
+library(tidyverse)
+library(knitr)
+```
+
+```{r import_sub_info, message=FALSE, warning=FALSE}
+# Function that sums difference between left and right hand scores
+diff_sum <- function(df){
+  sum(df[12] - df[11], na.rm = TRUE)
+}
+
+# Function to calculate sum difference for each participant
+import_csv <- function(csv){
+  read_csv(csv) %>%
+    mutate_each(funs(as.numeric), aa.L, aa.R) %>% #Convert vars to numeric
+    diff_sum()  #Sum of differences
+  
+}
+# Create list of csv file names
+bump <- dir("Coding", pattern = "\\.csv$", full.names = TRUE)
+
+# Create vector of sum of differences for each of the 39 participants
+sum_hand <- map(bump, import_csv)
+
+# Import csv containing summary info of each participant
+bump_eng_subinfo <- read_csv("Sub/bump_eng_subinfo.csv") %>%
+  # Remove blank particpant row
+  filter(!Participant == 40) %>%
+  # Add vector of sum of differences as a variable
+  mutate(diff_sum = sum_hand) %>%
+  mutate_each(funs(as.numeric), EHI, diff_sum) %>%
+  filter(!Participant %in% c(7, 22, 35))
+  
+
+```
+
+
+```{r}
+#Create variable assigning handedness by EHI score
+bump_eng_subinfo <-  bump_eng_subinfo %>%
+  mutate(hand = ifelse(EHI > 40, "Right",
+         ifelse(EHI < -40, "Left", "Ambidextrous")))
+
+# Calculate median EHI score for each group
+median_EHI <- bump_eng_subinfo %>%
+  group_by(hand) %>%
+  summarise(median(EHI), na.rm = TRUE)
+```
+
+
+```{r}
+
+# Plot explicit action score against EHI score
+ggplot(bump_eng_subinfo, aes(EHI, diff_sum))+
+  geom_point()+
+  geom_smooth(method = "lm")+
+  labs(title = "EHI Score Against Pantomime Actions",
+       y = "Handedness Score",
+       x = "EHI Score")
+```
+
+```{r}
+righty <- bump_eng_subinfo %>%
+  filter(hand == "Right")
+
+# Plot explicit action score against EHI score
+ggplot(righty, aes(EHI, diff_sum))+
+  geom_point()+
+  geom_smooth(method = "lm")+
+  labs(title = "Right-Hander EHI Score Against Pantomime Actions",
+       y = "Handedness Score",
+       x = "EHI Score")
+```
+
+```{r}
+lefty <- bump_eng_subinfo %>%
+  filter(hand == "Left")
+
+# Plot explicit action score against EHI score
+ggplot(lefty, aes(EHI, diff_sum))+
+  geom_point()+
+  geom_smooth(method = "lm")+
+  labs(title = "Left-Hander EHI Score Against Pantomime Actions",
+       y = "Handedness Score",
+       x = "EHI Score")
+```
+
+```{r full_df, message=FALSE, warning=FALSE}
+# Create function to import all files 
+import_full <- function(csv){
+  read_csv(csv) %>%
+    mutate_each(funs(as.numeric), aa.L, aa.R, aa.Non)
+}
+
+# Import and combine files
+bump_full <- map_df(bump, import_full)
+```
+
+```{r}
+bump_full <- bump_full %>%
+  rename(Participant = PARTICIPANT) %>%
+  mutate(sum_diff = aa.R - aa.L)
+
+bump_full <- left_join(bump_full, bump_eng_subinfo, by = "Participant") %>%
+  filter(!Participant %in% c(7, 22, 35))
+```
+
