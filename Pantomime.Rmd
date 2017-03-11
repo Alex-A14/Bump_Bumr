@@ -113,3 +113,9 @@ bump_full <- left_join(bump_full, bump_eng_subinfo, by = "Participant") %>%
   filter(!Participant %in% c(7, 22, 35))
 ```
 
+```{r}
+bump_full %>%
+  ggplot(aes(EHI, sum_diff))+
+  geom_point(position = "jitter", alpha =.2)+
+  geom_smooth(method = "lm")
+```
