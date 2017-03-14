@@ -115,7 +115,34 @@ bump_full <- left_join(bump_full, bump_eng_subinfo, by = "Participant") %>%
 
 ```{r}
 bump_full %>%
+  filter(!sum_diff == 0) %>%
   ggplot(aes(EHI, sum_diff))+
   geom_point(position = "jitter", alpha =.2)+
   geom_smooth(method = "lm")
+```
+
+
+```{r}
+bump_full %>%
+  filter(hand == "Right") %>%
+  filter(!sum_diff == 0) %>%
+  ggplot(aes(EHI, sum_diff))+
+  geom_point(position = "jitter", alpha =.2)+
+  geom_smooth(method = "lm")
+```
+
+```{r}
+bump_full %>%
+  filter(hand == "Right") %>%
+  group_by(word) %>%
+  summarise(mean(sum_diff, na.rm = TRUE), sd(sum_diff, na.rm = TRUE)) %>%
+  kable()
+```
+
+```{r}
+bump_full %>%
+  filter(hand == "Left") %>%
+  group_by(word) %>%
+  summarise(mean(sum_diff, na.rm = TRUE), sd(sum_diff, na.rm = TRUE)) %>%
+  kable()
 ```
