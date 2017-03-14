@@ -146,3 +146,10 @@ bump_full %>%
   summarise(mean(sum_diff, na.rm = TRUE), sd(sum_diff, na.rm = TRUE)) %>%
   kable()
 ```
+
+```{r}
+bumr_eng_all <- read_csv("bumr_eng_all.csv")
+
+bumpr <- left_join(bump_full, bumr_eng_all,
+                   by = c("Participant" = "PARTICIPANT", "word"))
+```
