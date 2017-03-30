@@ -115,7 +115,7 @@ bump_full <- left_join(bump_full, bump_eng_subinfo, by = "Participant") %>%
 
 ```{r}
 bump_full %>%
-  filter(!sum_diff == 0) %>%
+  filter() %>%
   ggplot(aes(EHI, sum_diff))+
   geom_point(position = "jitter", alpha =.2)+
   geom_smooth(method = "lm")
@@ -137,6 +137,15 @@ bump_full %>%
   group_by(word) %>%
   summarise(mean(sum_diff, na.rm = TRUE), sd(sum_diff, na.rm = TRUE)) %>%
   kable()
+```
+
+```{r}
+bump_full %>%
+  mutate(word = as.factor(word)) %>%
+  group_by(word) %>%
+  summarise(sum_diff = mean(sum_diff, na.rm = TRUE), n = n()) %>%
+  ggplot(aes(sum_diff, forcats::fct_reorder(word, sum_diff)))+
+  geom_point()
 ```
 
 ```{r}
@@ -152,4 +161,68 @@ bumr_eng_all <- read_csv("bumr_eng_all.csv")
 
 bumpr <- left_join(bump_full, bumr_eng_all,
                    by = c("Participant" = "PARTICIPANT", "word"))
+```
+
+```{r}
+bump_full %>%
+  mutate(h_contr = abs(sum_diff)) %>%
+  ggplot(aes(h_contr))+
+  geom_bar()+
+  labs(title = "Frequency of Hand Contribution Combinations",
+       x = "Uni-manual Contribution",
+       y = "Frequency")
+```
+
+```{r}
+# Looking at hand contribution for "write"
+
+bump_full %>%
+  mutate(h_contr = abs(sum_diff)) %>%
+  filter(word == "write") %>%
+  filter(!hand %in% c("Ambidextrous", NA)) %>%
+  ggplot(aes(factor(h_contr), fill = hand))+
+  geom_bar()+
+  labs(title = "Frequency of Hand Contribution Combinations",
+       subtitle = "Write",
+       x = "Uni-manual Contribution",
+       y = "Frequency")
+```
+
+```{r}
+bump_full %>%
+  mutate(h_contr = abs(sum_diff)) %>%
+  filter(word == "draw") %>%
+  filter(!hand %in% c("Ambidextrous", NA)) %>%
+  ggplot(aes(factor(h_contr), fill = hand))+
+  geom_bar()+
+  labs(title = "Frequency of Hand Contribution Combinations",
+       subtitle = "Draw",
+       x = "Uni-manual Contribution",
+       y = "Frequency")
+```
+
+```{r}
+bump_full %>%
+  mutate(h_contr = abs(sum_diff)) %>%
+  filter(word == "throw") %>%
+  filter(!hand %in% c("Ambidextrous", NA)) %>%
+  ggplot(aes(factor(h_contr), fill = hand))+
+  geom_bar()+
+  labs(title = "Frequency of Hand Contribution Combinations",
+       subtitle = "Throw",
+       x = "Uni-manual Contribution",
+       y = "Frequency")
+```
+
+```{r}
+bump_full %>%
+  mutate(h_contr = abs(sum_diff)) %>%
+  filter(word == "throw") %>%
+  filter(!hand %in% c("Ambidextrous", NA)) %>%
+  ggplot(aes(factor(h_contr), fill = hand))+
+  geom_bar()+
+  labs(title = "Frequency of Hand Contribution Combinations",
+       subtitle = "Throw",
+       x = "Uni-manual Contribution",
+       y = "Frequency")
 ```
