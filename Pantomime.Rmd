@@ -217,12 +217,52 @@ bump_full %>%
 ```{r}
 bump_full %>%
   mutate(h_contr = abs(sum_diff)) %>%
-  filter(word == "throw") %>%
+  filter(word == "cut") %>%
   filter(!hand %in% c("Ambidextrous", NA)) %>%
   ggplot(aes(factor(h_contr), fill = hand))+
   geom_bar()+
   labs(title = "Frequency of Hand Contribution Combinations",
-       subtitle = "Throw",
+       subtitle = "Cut (Knife)",
        x = "Uni-manual Contribution",
        y = "Frequency")
+```
+
+```{r}
+bump_full %>%
+  mutate(h_contr = abs(sum_diff)) %>%
+  filter(word == "broom") %>%
+  filter(!hand %in% c("Ambidextrous", NA)) %>%
+  filter(!is.na(h_contr)) %>%
+  ggplot(aes(factor(h_contr), fill = hand))+
+  geom_bar()+
+  labs(title = "Frequency of Hand Contribution Combinations",
+       subtitle = "Broom",
+       x = "Uni-manual Contribution",
+       y = "Frequency")
+```
+
+# Comparing bump & bumr
+
+```{r}
+# Pantomime Actions Against Responses
+bumpr %>%
+  ggplot(aes(q2_resp, sum_diff))+
+  geom_point(position = "jitter", alpha = .2)+
+  geom_smooth(method = "lm")+
+  labs(title = "Response Against Pantomime",
+       x = "Stated Hand Contribution",
+       y = "Response Hand Contribution")
+```
+
+```{r}
+# Pantomime Actions Against Responses 
+bumpr %>%
+  filter(hand == "Right") %>%
+  ggplot(aes(q2_resp, sum_diff))+
+  geom_point(position = "jitter", alpha = .2)+
+  geom_smooth(method = "lm")+
+  labs(title = "Responses Against Pantomime",
+       subtitle = "Righ-handers",
+       x = "Stated Hand Contribution",
+       y = "Response Hand Contribution")
 ```
