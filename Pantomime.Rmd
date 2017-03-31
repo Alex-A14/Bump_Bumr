@@ -266,3 +266,33 @@ bumpr %>%
        x = "Stated Hand Contribution",
        y = "Response Hand Contribution")
 ```
+
+```{r}
+# Compare frequency for PURE unimanual and bi-manual actions
+bumpr %>%
+  filter(sum_diff %in% c(0,5)) %>%
+  mutate(q1_pant = if_else(sum_diff == 5, "one hand", "two hands")) %>%
+  gather(q1_resp_label, q1_pant, key = "task", value = "hands") %>%
+  filter(!is.na(hands)) %>%
+  ggplot(aes(hands, fill = task))+
+  geom_bar(position = "dodge")+
+  scale_fill_manual(name = "Task",
+                     labels = c("Pantomime", "Response"),
+                     values = c("q1_pant" = "gray", "q1_resp_label" = "black"))
+  
+```
+
+```{r}
+# Compare accuracy for pure uni- and bi-manual actions
+bumpr %>%
+  filter(sum_diff %in% c(0,5)) %>%
+  mutate(mantype_pant = if_else(sum_diff == 0, "bi", "uni")) %>%
+  mutate(q1_pant = if_else(sum_diff == 5, "one hand", "two hands")) %>%
+  mutate(accuracy = factor(if_else(q1_resp_label == q1_pant,
+                                   "Congruent", "Incongruent"))) %>%
+  filter(!is.na(accuracy)) %>%
+  ggplot(aes(accuracy, fill = mantype_pant))+
+  geom_bar(position = "dodge")+
+  labs(title = "Congruency between response and pantomime tasks")+
+  theme(axis.title.x = element_blank())
+```
