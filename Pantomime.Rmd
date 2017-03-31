@@ -293,6 +293,17 @@ bumpr %>%
   filter(!is.na(accuracy)) %>%
   ggplot(aes(accuracy, fill = mantype_pant))+
   geom_bar(position = "dodge")+
-  labs(title = "Congruency between response and pantomime tasks")+
+  labs(title = "Congruency between response and pantomime tasks",
+       y = "Frequency",
+       fill = "Manual Type")+
   theme(axis.title.x = element_blank())
+```
+
+```{r}
+bump_full %>%
+  filter(!hand == "Ambidextrous") %>%
+  mutate(EHI_mag = abs(EHI)) %>%
+  ggplot(aes(EHI_mag, sum_diff, color = factor(hand)))+
+  geom_point()+
+  geom_smooth(method = "lm", se = FALSE)
 ```
