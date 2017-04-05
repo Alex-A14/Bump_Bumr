@@ -9,6 +9,7 @@ output: html_document
 #load packages
 library(tidyverse)
 library(knitr)
+library(stringr)
 ```
 
 ```{r import_sub_info, message=FALSE, warning=FALSE}
@@ -111,6 +112,44 @@ bump_full <- bump_full %>%
 
 bump_full <- left_join(bump_full, bump_eng_subinfo, by = "Participant") %>%
   filter(!Participant %in% c(7, 22, 35))
+```
+
+```{r}
+# Corrine files
+# Create list of csv file names
+cr_files <- dir("Coding_Corinne", pattern = "\\.xlsx$", full.names = TRUE)
+
+import_cor <- function(file){
+  readxl::read_excel(file, skip = -1) %>%
+    mutate_each(funs(as.numeric), cr.R, cr.L, cr.NM)
+}
+
+bump_cr <- map_df(cr_files, import_cor) %>%
+  separate(Action, c("to", "word"), sep = " ") %>%
+  rename(Participant = Subject) %>%
+  mutate(Participant = as.numeric(Participant))
+
+bump_aacr <- left_join(bump_full, bump_cr, by = c("Participant", "word"))
+```
+
+```{r}
+#Alex Corrine left hand comparison
+bump_aacr %>%
+  ggplot(aes(aa.L, cr.L))+
+  geom_point(position = "jitter")+
+  geom_smooth(method = "lm")
+
+cor.test(bump_aacr$aa.L, bump_aacr$cr.L)
+```
+
+```{r}
+# Alex-Corrine right-hand comparison
+bump_aacr %>%
+  ggplot(aes(aa.R, cr.R))+
+  geom_point(position = "jitter")+
+  geom_smooth(method = "lm")
+
+cor.test(bump_aacr$aa.R, bump_aacr$cr.R)
 ```
 
 ```{r}
@@ -305,5 +344,9 @@ bump_full %>%
   mutate(EHI_mag = abs(EHI)) %>%
   ggplot(aes(EHI_mag, sum_diff, color = factor(hand)))+
   geom_point()+
-  geom_smooth(method = "lm", se = FALSE)
+  geom_smooth(method = "lm", se = FALSE)+
+  labs(title = "EHI Against Pantomime",
+       color = "Handedness",
+       x = "EHI Magnitude",
+       y = "Pantomime Hand Contribution")
 ```
