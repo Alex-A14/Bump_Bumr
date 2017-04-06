@@ -137,9 +137,20 @@ bump_aacr <- left_join(bump_full, bump_cr, by = c("Participant", "word"))
 bump_aacr %>%
   ggplot(aes(aa.L, cr.L))+
   geom_point(position = "jitter")+
+  geom_smooth(method = "lm")+
+  labs(title = "Coder Ratings Comparison",
+       subtitle = "Left-Hand Rating")
+
+bump_aacr %>%
+  mutate(Participant = as.factor(Participant)) %>%
+  ggplot(aes(aa.L, cr.L, color = Participant))+
+  geom_point()+
   geom_smooth(method = "lm")
 
 cor.test(bump_aacr$aa.L, bump_aacr$cr.L)
+
+left_mod <- lm(cr.L ~ aa.L, data = bump_aacr)
+summary(left_mod)
 ```
 
 ```{r}
@@ -147,9 +158,28 @@ cor.test(bump_aacr$aa.L, bump_aacr$cr.L)
 bump_aacr %>%
   ggplot(aes(aa.R, cr.R))+
   geom_point(position = "jitter")+
-  geom_smooth(method = "lm")
+  geom_smooth(method = "lm")+
+  labs(title = "Coder Ratings Comparison",
+       subtitle = "Right-Hand Rating")
 
 cor.test(bump_aacr$aa.R, bump_aacr$cr.R)
+
+right_mod <- lm(cr.R ~ aa.R, data = bump_aacr)
+summary(right_mod)
+```
+
+```{r}
+bump_aacr %>%
+  ggplot(aes(aa.Non, cr.NM))+
+  geom_point(position = "jitter")+
+  geom_smooth(method = "lm")+
+  labs(title = "Coder Ratings Comparison",
+       subtitle = "Non-manual Rating")
+
+cor.test(bump_aacr$aa.Non, bump_aacr$cr.NM)
+
+nm_mod <- lm(cr.NM ~ aa.Non, data = bump_aacr)
+summary(nm_mod)
 ```
 
 ```{r}
