@@ -9,6 +9,7 @@ output: html_document
 #load packages
 library(tidyverse)
 library(knitr)
+library(scales)
 library(stringr)
 ```
 
@@ -259,7 +260,9 @@ bumpr <- left_join(bump_full, bumr_eng_all,
 bump_full %>%
   mutate(h_contr = abs(sum_diff)) %>%
   ggplot(aes(h_contr))+
-  geom_bar()+
+  geom_bar(aes(y = (..count..)/sum(..count..)))+
+  scale_y_continuous(labels = percent)+
+  scale_x_continuous(breaks = c(0, 5), labels = c("Bi-Manual", "Uni-Manual"))+
   labs(title = "Frequency of Hand Contribution Combinations",
        x = "Uni-manual Contribution",
        y = "Frequency")
