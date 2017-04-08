@@ -275,9 +275,7 @@ bump_full %>%
   mutate(fal = replace(fal, is.na(fal), 0), tru = replace(tru, is.na(tru), 0))%>%
   mutate(total = fal + tru,
          bi_p = tru/total,
-         uni_p = fal/total) %>%
-  ggplot(aes(bi_p, uni_p))+
-  geom_point()
+         uni_p = fal/total)
 
 bump_full %>%
   mutate(h_contr = abs(sum_diff)) %>%
@@ -293,7 +291,15 @@ bump_full %>%
          `5` = replace(`5`, is.na(`5`), 0)) %>%
   mutate(total = `0`+`1`+`2`+`3`+`4`+`5`) %>%
   mutate(uni_p = `5`/total,
-         bi_p = `0`/total)
+         bi_p = `0`/total,
+         rem_p = 1 - (uni_p + bi_p)) %>%
+  ggplot(aes(uni_p, bi_p))+
+  geom_point(aes(size = rem_p))+
+  labs(x = "Proportion of Uni-Manual Responses",
+       y = "Proportion of Bi-Manual Responses",
+       title = "Proportions of Purely Bi- & Uni-Manual Responses for Each Verb",
+       size = "Proportion of Mixed Hand Contribution")+
+  theme(legend.position = "bottom")
 
 ```
 
