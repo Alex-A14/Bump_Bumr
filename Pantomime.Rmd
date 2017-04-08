@@ -66,6 +66,9 @@ ggplot(bump_eng_subinfo, aes(EHI, diff_sum))+
   labs(title = "EHI Score Against Pantomime Actions",
        y = "Handedness Score",
        x = "EHI Score")
+
+fit1 <- lm(diff_sum ~ EHI, data = bump_eng_subinfo)
+summary(fit1)
 ```
 
 ```{r}
@@ -183,11 +186,23 @@ summary(nm_mod)
 ```
 
 ```{r}
+# EHI vs Pantomime
 bump_full %>%
-  filter() %>%
+  filter(!sum_diff == 0) %>%
   ggplot(aes(EHI, sum_diff))+
   geom_point(position = "jitter", alpha =.2)+
-  geom_smooth(method = "lm")
+  geom_smooth(method = "lm")+
+  labs(title = "Pantomime Actions Against EHI Score",
+       x = "EHI Score",
+       y = "Hand Contribution")+
+  scale_y_continuous(breaks = c(-5, 5), labels = c("Left-Hand", "Right-Hand"))
+
+bump_uni <- bump_full %>%
+  filter(!sum_diff == 0)
+
+fit3 <- lm(sum_diff ~ EHI, data = bump_uni)
+summary(fit3)
+
 ```
 
 
@@ -198,6 +213,14 @@ bump_full %>%
   ggplot(aes(EHI, sum_diff))+
   geom_point(position = "jitter", alpha =.2)+
   geom_smooth(method = "lm")
+
+bump_uni_r <- bump_full %>%
+  filter(hand == "Right") %>%
+  filter(!sum_diff == 0)
+
+fit4 <- lm(sum_diff ~ EHI, data = bump_uni_r)
+summary(fit4)
+
 ```
 
 ```{r}
@@ -240,6 +263,38 @@ bump_full %>%
   labs(title = "Frequency of Hand Contribution Combinations",
        x = "Uni-manual Contribution",
        y = "Frequency")
+
+bump_full %>%
+  mutate(h_contr = abs(sum_diff)) %>%
+  group_by(word) %>%
+  filter(!is.na(h_contr))%>%
+  count(h_contr == 0) %>%
+  rename("tf" = `h_contr == 0`) %>%
+  spread(key = tf, value = n) %>%
+  rename(fal = `FALSE`, tru = `TRUE`) %>%
+  mutate(fal = replace(fal, is.na(fal), 0), tru = replace(tru, is.na(tru), 0))%>%
+  mutate(total = fal + tru,
+         bi_p = tru/total,
+         uni_p = fal/total) %>%
+  ggplot(aes(bi_p, uni_p))+
+  geom_point()
+
+bump_full %>%
+  mutate(h_contr = abs(sum_diff)) %>%
+  group_by(word) %>%
+  filter(!is.na(h_contr)) %>%
+  count(h_contr) %>%
+  spread(key = h_contr, value = n) %>%
+  mutate(`0` = replace(`0`, is.na(`0`), 0),
+         `1` = replace(`1`, is.na(`1`), 0),
+         `2` = replace(`2`, is.na(`2`), 0),
+         `3` = replace(`3`, is.na(`3`), 0),
+         `4` = replace(`4`, is.na(`4`), 0),
+         `5` = replace(`5`, is.na(`5`), 0)) %>%
+  mutate(total = `0`+`1`+`2`+`3`+`4`+`5`) %>%
+  mutate(uni_p = `5`/total,
+         bi_p = `0`/total)
+
 ```
 
 ```{r}
@@ -318,9 +373,14 @@ bumpr %>%
   ggplot(aes(q2_resp, sum_diff))+
   geom_point(position = "jitter", alpha = .2)+
   geom_smooth(method = "lm")+
-  labs(title = "Response Against Pantomime",
+  labs(title = "Responses Against Pantomime Actions for Manual Action Verbs",
        x = "Stated Hand Contribution",
-       y = "Response Hand Contribution")
+       y = "Pantomime Hand Contribution")+
+  scale_y_continuous(breaks = c(-5, 5), labels = c("Left-Hand", "Right-Hand"))+
+  scale_x_continuous(breaks = c(1, 7), labels = c("Left-Hand","Right-Hand"))
+
+fit_bumpr <- lm(sum_diff ~ q2_resp, data = bumpr)
+summary(fit_bumpr)
 ```
 
 ```{r}
@@ -350,6 +410,17 @@ bumpr %>%
                      values = c("q1_pant" = "gray", "q1_resp_label" = "black"))
   
 ```
+```{r}
+bumpr_comp <- bumpr %>%
+  filter(sum_diff %in% c(0,5)) %>%
+  mutate(q1_pant = if_else(sum_diff == 5, "one hand", "two hands")) %>%
+  gather(q1_resp_label, q1_pant, key = "task", value = "hands") %>%
+  filter(!is.na(hands))
+
+comp = table(bumpr_comp$task, bumpr_comp$hands)
+comp
+chisq.test(comp)
+```
 
 ```{r}
 # Compare accuracy for pure uni- and bi-manual actions
@@ -366,6 +437,20 @@ bumpr %>%
        y = "Frequency",
        fill = "Manual Type")+
   theme(axis.title.x = element_blank())
+```
+```{r}
+congruent <- bumpr %>%
+  filter(sum_diff %in% c(0,5)) %>%
+  mutate(mantype_pant = if_else(sum_diff == 0, "bi", "uni")) %>%
+  mutate(q1_pant = if_else(sum_diff == 5, "one hand", "two hands")) %>%
+  mutate(accuracy = factor(if_else(q1_resp_label == q1_pant,
+                                   "Congruent", "Incongruent"))) %>%
+  filter(!is.na(accuracy))%>%
+  filter(accuracy == "Congruent")
+
+congr = table(congruent$q1_pant, congruent$accuracy)
+congr
+chisq.test(congr)
 ```
 
 ```{r}
