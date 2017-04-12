@@ -263,9 +263,9 @@ bump_full %>%
   geom_bar(aes(y = (..count..)/sum(..count..)))+
   scale_y_continuous(labels = percent)+
   scale_x_continuous(breaks = c(0, 5), labels = c("Bi-Manual", "Uni-Manual"))+
-  labs(title = "Frequency of Hand Contribution Combinations",
-       x = "Uni-manual Contribution",
-       y = "Frequency")
+  labs(title = "Distribution of Hand Contribution Across Actions",
+       y = "Frequency")+
+  theme(axis.title.x = element_blank())
 
 bump_full %>%
   mutate(h_contr = abs(sum_diff)) %>%
@@ -297,7 +297,7 @@ bump_full %>%
          bi_p = `0`/total,
          rem_p = 1 - (uni_p + bi_p)) %>%
   ggplot(aes(uni_p, bi_p))+
-  geom_point(aes(size = rem_p))+
+  geom_point(aes(size = rem_p), alpha = .4)+
   labs(x = "Proportion of Uni-Manual Responses",
        y = "Proportion of Bi-Manual Responses",
        title = "Proportions of Purely Bi- & Uni-Manual Responses for Each Verb",
