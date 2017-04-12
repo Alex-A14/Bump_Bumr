@@ -1,0 +1,471 @@
+---
+title: "Pantomime"
+author: "Alex Albury"
+date: "March 10, 2017"
+output: html_document
+---
+
+```{r}
+#load packages
+library(tidyverse)
+library(knitr)
+library(scales)
+library(stringr)
+```
+
+```{r import_sub_info, message=FALSE, warning=FALSE}
+# Function that sums difference between left and right hand scores
+diff_sum <- function(df){
+  sum(df[12] - df[11], na.rm = TRUE)
+}
+
+# Function to calculate sum difference for each participant
+import_csv <- function(csv){
+  read_csv(csv) %>%
+    mutate_each(funs(as.numeric), aa.L, aa.R) %>% #Convert vars to numeric
+    diff_sum()  #Sum of differences
+  
+}
+# Create list of csv file names
+bump <- dir("Coding", pattern = "\\.csv$", full.names = TRUE)
+
+# Create vector of sum of differences for each of the 39 participants
+sum_hand <- map(bump, import_csv)
+
+# Import csv containing summary info of each participant
+bump_eng_subinfo <- read_csv("Sub/bump_eng_subinfo.csv") %>%
+  # Remove blank particpant row
+  filter(!Participant == 40) %>%
+  # Add vector of sum of differences as a variable
+  mutate(diff_sum = sum_hand) %>%
+  mutate_each(funs(as.numeric), EHI, diff_sum) %>%
+  filter(!Participant %in% c(7, 22, 35))
+  
+
+```
+
+
+```{r}
+#Create variable assigning handedness by EHI score
+bump_eng_subinfo <-  bump_eng_subinfo %>%
+  mutate(hand = ifelse(EHI > 40, "Right",
+         ifelse(EHI < -40, "Left", "Ambidextrous")))
+
+# Calculate median EHI score for each group
+median_EHI <- bump_eng_subinfo %>%
+  group_by(hand) %>%
+  summarise(median(EHI), na.rm = TRUE)
+```
+
+
+```{r}
+
+# Plot explicit action score against EHI score
+ggplot(bump_eng_subinfo, aes(EHI, diff_sum))+
+  geom_point()+
+  geom_smooth(method = "lm")+
+  labs(title = "EHI Score Against Pantomime Actions",
+       y = "Handedness Score",
+       x = "EHI Score")
+
+fit1 <- lm(diff_sum ~ EHI, data = bump_eng_subinfo)
+summary(fit1)
+```
+
+```{r}
+righty <- bump_eng_subinfo %>%
+  filter(hand == "Right")
+
+# Plot explicit action score against EHI score
+ggplot(righty, aes(EHI, diff_sum))+
+  geom_point()+
+  geom_smooth(method = "lm")+
+  labs(title = "Right-Hander EHI Score Against Pantomime Actions",
+       y = "Handedness Score",
+       x = "EHI Score")
+```
+
+```{r}
+lefty <- bump_eng_subinfo %>%
+  filter(hand == "Left")
+
+# Plot explicit action score against EHI score
+ggplot(lefty, aes(EHI, diff_sum))+
+  geom_point()+
+  geom_smooth(method = "lm")+
+  labs(title = "Left-Hander EHI Score Against Pantomime Actions",
+       y = "Handedness Score",
+       x = "EHI Score")
+```
+
+```{r full_df, message=FALSE, warning=FALSE}
+# Create function to import all files 
+import_full <- function(csv){
+  read_csv(csv) %>%
+    mutate_each(funs(as.numeric), aa.L, aa.R, aa.Non)
+}
+
+# Import and combine files
+bump_full <- map_df(bump, import_full)
+```
+
+```{r}
+bump_full <- bump_full %>%
+  rename(Participant = PARTICIPANT) %>%
+  mutate(sum_diff = aa.R - aa.L)
+
+bump_full <- left_join(bump_full, bump_eng_subinfo, by = "Participant") %>%
+  filter(!Participant %in% c(7, 22, 35))
+```
+
+```{r}
+# Corrine files
+# Create list of csv file names
+cr_files <- dir("Coding_Corinne", pattern = "\\.xlsx$", full.names = TRUE)
+
+import_cor <- function(file){
+  readxl::read_excel(file, skip = -1) %>%
+    mutate_each(funs(as.numeric), cr.R, cr.L, cr.NM)
+}
+
+bump_cr <- map_df(cr_files, import_cor) %>%
+  separate(Action, c("to", "word"), sep = " ") %>%
+  rename(Participant = Subject) %>%
+  mutate(Participant = as.numeric(Participant))
+
+bump_aacr <- left_join(bump_full, bump_cr, by = c("Participant", "word"))
+```
+
+```{r}
+#Alex Corrine left hand comparison
+bump_aacr %>%
+  ggplot(aes(aa.L, cr.L))+
+  geom_point(position = "jitter")+
+  geom_smooth(method = "lm")+
+  labs(title = "Coder Ratings Comparison",
+       subtitle = "Left-Hand Rating")
+
+bump_aacr %>%
+  mutate(Participant = as.factor(Participant)) %>%
+  ggplot(aes(aa.L, cr.L, color = Participant))+
+  geom_point()+
+  geom_smooth(method = "lm")
+
+cor.test(bump_aacr$aa.L, bump_aacr$cr.L)
+
+left_mod <- lm(cr.L ~ aa.L, data = bump_aacr)
+summary(left_mod)
+```
+
+```{r}
+# Alex-Corrine right-hand comparison
+bump_aacr %>%
+  ggplot(aes(aa.R, cr.R))+
+  geom_point(position = "jitter")+
+  geom_smooth(method = "lm")+
+  labs(title = "Coder Ratings Comparison",
+       subtitle = "Right-Hand Rating")
+
+cor.test(bump_aacr$aa.R, bump_aacr$cr.R)
+
+right_mod <- lm(cr.R ~ aa.R, data = bump_aacr)
+summary(right_mod)
+```
+
+```{r}
+#Alex-Corrine NM Comparison
+bump_aacr %>%
+  ggplot(aes(aa.Non, cr.NM))+
+  geom_point(position = "jitter")+
+  geom_smooth(method = "lm")+
+  labs(title = "Coder Ratings Comparison",
+       subtitle = "Non-manual Rating")
+
+cor.test(bump_aacr$aa.Non, bump_aacr$cr.NM)
+
+nm_mod <- lm(cr.NM ~ aa.Non, data = bump_aacr)
+summary(nm_mod)
+```
+
+# Crating averaged scores
+```{r}
+bump_aacr <- bump_aacr %>%
+  mutate(avg_L = (aa.L + cr.L)/2,
+         avg_R = (aa.R + cr.R)/2) %>%
+  mutate(sum_diff = avg_R - avg_L)
+```
+
+```{r}
+# EHI vs Pantomime
+bump_aacr %>%
+  filter(!sum_diff == 0) %>%
+  ggplot(aes(EHI, sum_diff))+
+  geom_point(position = "jitter", alpha =.2)+
+  geom_smooth(method = "lm")+
+  labs(title = "Pantomime Actions Against EHI Score",
+       x = "EHI Score",
+       y = "Hand Contribution")+
+  scale_y_continuous(breaks = c(-5, 5), labels = c("Left-Hand", "Right-Hand"))
+
+bump_uni <- bump_aacr %>%
+  filter(!sum_diff == 0)
+
+fit3 <- lm(sum_diff ~ EHI, data = bump_uni)
+summary(fit3)
+
+```
+
+
+```{r}
+bump_aacr %>%
+  filter(hand == "Right") %>%
+  filter(!sum_diff == 0) %>%
+  ggplot(aes(EHI, sum_diff))+
+  geom_point(position = "jitter", alpha =.2)+
+  geom_smooth(method = "lm")
+
+bump_uni_r <- bump_aacr %>%
+  filter(hand == "Right") %>%
+  filter(!sum_diff == 0)
+
+fit4 <- lm(sum_diff ~ EHI, data = bump_uni_r)
+summary(fit4)
+
+```
+
+```{r}
+bump_aacr %>%
+  filter(hand == "Right") %>%
+  group_by(word) %>%
+  summarise(mean(sum_diff, na.rm = TRUE), sd(sum_diff, na.rm = TRUE)) %>%
+  kable()
+
+```
+
+```{r}
+bump_aacr %>%
+  mutate(word = as.factor(word)) %>%
+  group_by(word) %>%
+  summarise(sum_diff = mean(sum_diff, na.rm = TRUE), n = n()) %>%
+  ggplot(aes(sum_diff, forcats::fct_reorder(word, sum_diff)))+
+  geom_point()
+```
+
+```{r}
+bump_aacr %>%
+  filter(hand == "Left") %>%
+  group_by(word) %>%
+  summarise(mean(sum_diff, na.rm = TRUE), sd(sum_diff, na.rm = TRUE)) %>%
+  kable()
+```
+
+```{r}
+bumr_eng_all <- read_csv("bumr_eng_all.csv")
+
+bumpr_aacr <- left_join(bump_aacr, bumr_eng_all,
+                   by = c("Participant" = "PARTICIPANT", "word"))
+```
+# Distribution of hand contribution
+```{r}
+bump_aacr %>%
+  mutate(h_contr = abs(sum_diff)) %>%
+  ggplot(aes(h_contr))+
+  geom_bar(aes(y = (..count..)/sum(..count..)))+
+  scale_y_continuous(labels = percent)+
+  scale_x_continuous(breaks = c(0, 5), labels = c("Bi-Manual", "Uni-Manual"))+
+  labs(title = "Distribution of Hand Contribution Across Actions",
+       y = "Frequency")+
+  theme(axis.title.x = element_blank())
+
+
+bump_aacr %>%
+  mutate(h_contr = abs(sum_diff)) %>%
+  group_by(word) %>%
+  filter(!is.na(h_contr)) %>%
+  count(h_contr) %>%
+  spread(key = h_contr, value = n) %>%
+  mutate_all(funs(replace(., is.na(.), 0))) %>%
+  mutate(total = `0`+`0.5`+`1`+`1.5`+`2`+`2.5`+`3`+`3.5`+`4`+`4.5`+`5`) %>%
+  mutate(uni_p = `5`/total,
+         bi_p = `0`/total,
+         rem_p = 1 - (uni_p + bi_p)) %>%
+  ggplot(aes(uni_p, bi_p))+
+  geom_point(aes(size = rem_p), alpha = .4)+
+  labs(x = "Proportion of Uni-Manual Responses",
+       y = "Proportion of Bi-Manual Responses",
+       title = "Proportions of Purely Bi- & Uni-Manual Responses for Each Verb",
+       size = "Proportion of Mixed Hand Contribution")+
+  theme(legend.position = "bottom")
+
+```
+
+```{r}
+# Looking at hand contribution for "write"
+
+bump_aacr %>%
+  mutate(h_contr = abs(sum_diff)) %>%
+  filter(word == "write") %>%
+  filter(!hand %in% c("Ambidextrous", NA)) %>%
+  ggplot(aes(factor(h_contr), fill = hand))+
+  geom_bar()+
+  labs(title = "Frequency of Hand Contribution Combinations",
+       subtitle = "Write",
+       x = "Uni-manual Contribution",
+       y = "Frequency")
+```
+
+```{r}
+bump_aacr %>%
+  mutate(h_contr = abs(sum_diff)) %>%
+  filter(word == "draw") %>%
+  filter(!hand %in% c("Ambidextrous", NA)) %>%
+  ggplot(aes(factor(h_contr), fill = hand))+
+  geom_bar()+
+  labs(title = "Frequency of Hand Contribution Combinations",
+       subtitle = "Draw",
+       x = "Uni-manual Contribution",
+       y = "Frequency")
+```
+
+```{r}
+bump_aacr %>%
+  mutate(h_contr = abs(sum_diff)) %>%
+  filter(word == "throw") %>%
+  filter(!hand %in% c("Ambidextrous", NA)) %>%
+  ggplot(aes(factor(h_contr), fill = hand))+
+  geom_bar()+
+  labs(title = "Frequency of Hand Contribution Combinations",
+       subtitle = "Throw",
+       x = "Uni-manual Contribution",
+       y = "Frequency")
+```
+
+```{r}
+bump_aacr %>%
+  mutate(h_contr = abs(sum_diff)) %>%
+  filter(word == "cut") %>%
+  filter(!hand %in% c("Ambidextrous", NA)) %>%
+  ggplot(aes(factor(h_contr), fill = hand))+
+  geom_bar()+
+  labs(title = "Frequency of Hand Contribution Combinations",
+       subtitle = "Cut (Knife)",
+       x = "Uni-manual Contribution",
+       y = "Frequency")
+```
+
+```{r}
+bump_aacr %>%
+  mutate(h_contr = abs(sum_diff)) %>%
+  filter(word == "broom") %>%
+  filter(!hand %in% c("Ambidextrous", NA)) %>%
+  filter(!is.na(h_contr)) %>%
+  ggplot(aes(factor(h_contr), fill = hand))+
+  geom_bar()+
+  labs(title = "Frequency of Hand Contribution Combinations",
+       subtitle = "Broom",
+       x = "Uni-manual Contribution",
+       y = "Frequency")
+```
+
+# Comparing bump & bumr
+
+```{r}
+# Pantomime Actions Against Responses
+bumpr_aacr %>%
+  ggplot(aes(q2_resp, sum_diff))+
+  geom_point(position = "jitter", alpha = .2)+
+  geom_smooth(method = "lm")+
+  labs(title = "Responses Against Pantomime Actions for Manual Action Verbs",
+       x = "Stated Hand Contribution",
+       y = "Pantomime Hand Contribution")+
+  scale_y_continuous(breaks = c(-5, 5), labels = c("Left-Hand", "Right-Hand"))+
+  scale_x_continuous(breaks = c(1, 7), labels = c("Left-Hand","Right-Hand"))
+
+fit_bumpr <- lm(sum_diff ~ q2_resp, data = bumpr_aacr)
+summary(fit_bumpr)
+```
+
+```{r}
+# Pantomime Actions Against Responses (right)
+bumpr_aacr %>%
+  filter(hand == "Right") %>%
+  ggplot(aes(q2_resp, sum_diff))+
+  geom_point(position = "jitter", alpha = .2)+
+  geom_smooth(method = "lm")+
+  labs(title = "Responses Against Pantomime",
+       subtitle = "Righ-handers",
+       x = "Stated Hand Contribution",
+       y = "Response Hand Contribution")
+```
+
+```{r}
+# Compare frequency for PURE unimanual and bi-manual actions
+bumpr_aacr %>%
+  filter(sum_diff %in% c(0,5)) %>%
+  mutate(q1_pant = if_else(sum_diff == 5, "one hand", "two hands")) %>%
+  gather(q1_resp_label, q1_pant, key = "task", value = "hands") %>%
+  filter(!is.na(hands)) %>%
+  ggplot(aes(hands, fill = task))+
+  geom_bar(position = "dodge")+
+  scale_fill_manual(name = "Task",
+                     labels = c("Pantomime", "Response"),
+                     values = c("q1_pant" = "gray", "q1_resp_label" = "black"))
+  
+```
+
+```{r}
+bumpr_comp <- bumpr_aacr %>%
+  filter(sum_diff %in% c(0,5)) %>%
+  mutate(q1_pant = if_else(sum_diff == 5, "one hand", "two hands")) %>%
+  gather(q1_resp_label, q1_pant, key = "task", value = "hands") %>%
+  filter(!is.na(hands))
+
+comp = table(bumpr_comp$task, bumpr_comp$hands)
+comp
+chisq.test(comp)
+```
+
+```{r}
+# Compare accuracy for pure uni- and bi-manual actions
+bumpr_aacr %>%
+  filter(sum_diff %in% c(0,5)) %>%
+  mutate(mantype_pant = if_else(sum_diff == 0, "bi", "uni")) %>%
+  mutate(q1_pant = if_else(sum_diff == 5, "one hand", "two hands")) %>%
+  mutate(accuracy = factor(if_else(q1_resp_label == q1_pant,
+                                   "Congruent", "Incongruent"))) %>%
+  filter(!is.na(accuracy)) %>%
+  ggplot(aes(accuracy, fill = mantype_pant))+
+  geom_bar(position = "dodge")+
+  labs(title = "Congruency between response and pantomime tasks",
+       y = "Frequency",
+       fill = "Manual Type")+
+  theme(axis.title.x = element_blank())
+```
+
+```{r}
+congruent <- bumpr_aacr %>%
+  filter(sum_diff %in% c(0,5)) %>%
+  mutate(mantype_pant = if_else(sum_diff == 0, "bi", "uni")) %>%
+  mutate(q1_pant = if_else(sum_diff == 5, "one hand", "two hands")) %>%
+  mutate(accuracy = factor(if_else(q1_resp_label == q1_pant,
+                                   "Congruent", "Incongruent"))) %>%
+  filter(!is.na(accuracy))%>%
+  filter(accuracy == "Congruent")
+
+congr = table(congruent$q1_pant, congruent$accuracy)
+congr
+chisq.test(congr)
+```
+
+```{r}
+bump_aacr %>%
+  filter(!hand == "Ambidextrous") %>%
+  mutate(EHI_mag = abs(EHI)) %>%
+  ggplot(aes(EHI_mag, sum_diff, color = factor(hand)))+
+  geom_point()+
+  geom_smooth(method = "lm", se = FALSE)+
+  labs(title = "EHI Against Pantomime",
+       color = "Handedness",
+       x = "EHI Magnitude",
+       y = "Pantomime Hand Contribution")
+```
