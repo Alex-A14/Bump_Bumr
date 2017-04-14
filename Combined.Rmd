@@ -11,6 +11,7 @@ library(tidyverse)
 library(knitr)
 library(scales)
 library(stringr)
+library(lme4)
 ```
 
 ```{r import_sub_info, message=FALSE, warning=FALSE}
@@ -196,16 +197,18 @@ bump_aacr <- bump_aacr %>%
 ```
 
 ```{r}
-# EHI vs Pantomime
+# EHI vs Pantomime: BIMNANUAL VERBS EXCLUDED
 bump_aacr %>%
   filter(!sum_diff == 0) %>%
   ggplot(aes(EHI, sum_diff))+
   geom_point(position = "jitter", alpha =.2)+
-  geom_smooth(method = "lm")+
+  geom_smooth(method = "lm", se = FALSE)+
   labs(title = "Pantomime Actions Against EHI Score",
        x = "EHI Score",
        y = "Hand Contribution")+
-  scale_y_continuous(breaks = c(-5, 5), labels = c("Left-Hand", "Right-Hand"))
+  scale_y_continuous(breaks = c(-5, 5), labels = c("Left-Hand", "Right-Hand"))+
+  xlim(c(-100,100))+
+  theme_classic()
 
 bump_uni <- bump_aacr %>%
   filter(!sum_diff == 0)
@@ -213,6 +216,20 @@ bump_uni <- bump_aacr %>%
 fit3 <- lm(sum_diff ~ EHI, data = bump_uni)
 summary(fit3)
 
+
+```
+#LMER Models
+
+```{r}
+bump_mod <- bump_aacr %>%
+  filter(!is.na(EHI))
+
+fit_m <- lmer(sum_diff ~ EHI + (1|word) + (1|Participant), data = bump_mod, REML = FALSE)
+summary(fit_m)
+
+fit_null <- lmer(sum_diff ~ 1 + (1|word) + (1|Participant), data = bump_mod, REML = FALSE)
+
+anova(fit_null, fit_m)
 ```
 
 
@@ -259,6 +276,7 @@ bump_aacr %>%
   kable()
 ```
 
+# Combining bump & bumr
 ```{r}
 bumr_eng_all <- read_csv("bumr_eng_all.csv")
 
@@ -275,6 +293,7 @@ bump_aacr %>%
   scale_x_continuous(breaks = c(0, 5), labels = c("Bi-Manual", "Uni-Manual"))+
   labs(title = "Distribution of Hand Contribution Across Actions",
        y = "Frequency")+
+  theme_classic()+
   theme(axis.title.x = element_blank())
 
 
@@ -293,14 +312,16 @@ bump_aacr %>%
   geom_point(aes(size = rem_p), alpha = .4)+
   labs(x = "Proportion of Uni-Manual Responses",
        y = "Proportion of Bi-Manual Responses",
-       title = "Proportions of Purely Bi- & Uni-Manual Responses for Each Verb",
+       title = "Proportions of Purely Bi- & Uni-Manual Responses by Verb",
        size = "Proportion of Mixed Hand Contribution")+
+  theme_classic()+
   theme(legend.position = "bottom")
 
 ```
 
 ```{r}
 # Looking at hand contribution for "write"
+#NOTE: AMB persosn filtered out
 
 bump_aacr %>%
   mutate(h_contr = abs(sum_diff)) %>%
@@ -381,8 +402,21 @@ bumpr_aacr %>%
   scale_y_continuous(breaks = c(-5, 5), labels = c("Left-Hand", "Right-Hand"))+
   scale_x_continuous(breaks = c(1, 7), labels = c("Left-Hand","Right-Hand"))
 
+bumpr_mod_df <- bumpr_aacr %>%
+  filter(!is.na(sum_diff)) %>%
+  filter(!is.na(q2_resp))
+
 fit_bumpr <- lm(sum_diff ~ q2_resp, data = bumpr_aacr)
 summary(fit_bumpr)
+
+bumpr_mix <- lmer(sum_diff ~ q2_resp + (1|word) + (1|Participant),
+                  data = bumpr_mod_df, REML = FALSE)
+summary(bumpr_mix)
+
+bumpr_null <- lmer(sum_diff ~ 1 + (1|word) + (1|Participant),
+                  data = bumpr_mod_df, REML = FALSE)
+
+anova(bumpr_null, bumpr_mix)
 ```
 
 ```{r}
@@ -435,14 +469,19 @@ bumpr_aacr %>%
                                    "Congruent", "Incongruent"))) %>%
   filter(!is.na(accuracy)) %>%
   ggplot(aes(accuracy, fill = mantype_pant))+
-  geom_bar(position = "dodge")+
+  geom_bar(aes(y = (..count..)/sum(..count..)), position = "dodge")+
+  scale_y_continuous(labels = percent)+
   labs(title = "Congruency between response and pantomime tasks",
        y = "Frequency",
        fill = "Manual Type")+
+  theme_classic()+
   theme(axis.title.x = element_blank())
+
 ```
 
+
 ```{r}
+# Testing frequency of congruent responses for bi- and uni-manual verbs
 congruent <- bumpr_aacr %>%
   filter(sum_diff %in% c(0,5)) %>%
   mutate(mantype_pant = if_else(sum_diff == 0, "bi", "uni")) %>%
@@ -452,9 +491,52 @@ congruent <- bumpr_aacr %>%
   filter(!is.na(accuracy))%>%
   filter(accuracy == "Congruent")
 
-congr = table(congruent$q1_pant, congruent$accuracy)
+congr = table(congruent$mantype_pant)
 congr
 chisq.test(congr)
+
+incongruent <- bumpr_aacr %>%
+  filter(sum_diff %in% c(0,5)) %>%
+  mutate(mantype_pant = if_else(sum_diff == 0, "bi", "uni")) %>%
+  mutate(q1_pant = if_else(sum_diff == 5, "one hand", "two hands")) %>%
+  mutate(accuracy = factor(if_else(q1_resp_label == q1_pant,
+                                   "Congruent", "Incongruent"))) %>%
+  filter(!is.na(accuracy))%>%
+  filter(accuracy == "Incongruent")
+
+incon = table(incongruent$mantype_pant)
+incon
+chisq.test(incon)
+```
+
+```{r}
+# Comparing congruency 
+bumpr_mod_test <- bumpr_aacr %>%
+  filter(sum_diff %in% c(0,5)) %>%
+  mutate(mantype_pant = if_else(sum_diff == 0, "bi", "uni")) %>%
+  mutate(q1_pant = if_else(sum_diff == 5, "one hand", "two hands")) %>%
+  mutate(accuracy = factor(if_else(q1_resp_label == q1_pant,
+                                   "Congruent", "Incongruent"))) %>%
+  filter(!is.na(accuracy)) %>%
+  mutate(man_pant_num = if_else(mantype_pant == "uni", 1, 2),
+         accuracy_num = if_else(accuracy == "Incongruent", 0, 1))
+
+bumpr_mod_test %>%
+ggplot(aes(man_pant_num, accuracy_num))+
+  geom_point(position = "jitter")+
+  geom_smooth(method = "glm")
+
+congr_mod <- glmer(accuracy_num ~ man_pant_num + (1|word) + (1|Participant),
+                  data = bumpr_mod_test, family = binomial)
+summary(congr_mod)
+
+congr_mod_null <- glmer(accuracy_num ~ 1 + (1|word) + (1|Participant),
+                  data = bumpr_mod_test, family = binomial)
+
+anova(congr_mod_null, congr_mod)
+
+test1 <- glm(accuracy_num ~ man_pant_num, data = bumpr_mod_test)
+summary(test1)
 ```
 
 ```{r}
