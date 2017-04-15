@@ -203,9 +203,8 @@ bump_aacr %>%
   ggplot(aes(EHI, sum_diff))+
   geom_point(position = "jitter", alpha =.2)+
   geom_smooth(method = "lm", se = FALSE)+
-  labs(title = "Pantomime Actions Against EHI Score",
-       x = "EHI Score",
-       y = "Hand Contribution")+
+  labs(x = "EHI Score",
+       y = "Hand Contribution During Pantomime Task")+
   scale_y_continuous(breaks = c(-5, 5), labels = c("Left-Hand", "Right-Hand"))+
   xlim(c(-100,100))+
   theme_classic()
@@ -395,12 +394,12 @@ bump_aacr %>%
 bumpr_aacr %>%
   ggplot(aes(q2_resp, sum_diff))+
   geom_point(position = "jitter", alpha = .2)+
-  geom_smooth(method = "lm")+
-  labs(title = "Responses Against Pantomime Actions for Manual Action Verbs",
-       x = "Stated Hand Contribution",
+  geom_smooth(method = "lm", se = FALSE)+
+  labs(x = "Stated Hand Contribution",
        y = "Pantomime Hand Contribution")+
   scale_y_continuous(breaks = c(-5, 5), labels = c("Left-Hand", "Right-Hand"))+
-  scale_x_continuous(breaks = c(1, 7), labels = c("Left-Hand","Right-Hand"))
+  scale_x_continuous(breaks = c(1, 7), labels = c("Left-Hand","Right-Hand"))+
+  theme_classic()
 
 bumpr_mod_df <- bumpr_aacr %>%
   filter(!is.na(sum_diff)) %>%
@@ -471,11 +470,12 @@ bumpr_aacr %>%
   ggplot(aes(accuracy, fill = mantype_pant))+
   geom_bar(aes(y = (..count..)/sum(..count..)), position = "dodge")+
   scale_y_continuous(labels = percent)+
-  labs(title = "Congruency between response and pantomime tasks",
+  labs(title = "Congruency between response and pantomime task",
        y = "Frequency",
-       fill = "Manual Type")+
+       fill = "Verb Type")+
   theme_classic()+
-  theme(axis.title.x = element_blank())
+  theme(legend.position = c(.9,.9),
+        axis.title.x = element_blank())
 
 ```
 
