@@ -199,7 +199,6 @@ bump_aacr <- bump_aacr %>%
 ```{r}
 # EHI vs Pantomime: BIMNANUAL VERBS EXCLUDED
 bump_aacr %>%
-  filter(!sum_diff == 0) %>%
   ggplot(aes(EHI, sum_diff))+
   geom_point(position = "jitter", alpha =.2)+
   geom_smooth(method = "lm", se = FALSE)+
@@ -470,7 +469,7 @@ bumpr_aacr %>%
   ggplot(aes(accuracy, fill = mantype_pant))+
   geom_bar(aes(y = (..count..)/sum(..count..)), position = "dodge")+
   scale_y_continuous(labels = percent)+
-  labs(title = "Congruency between response and pantomime task",
+  labs(title = "Congruency between response and pantomime tasks",
        y = "Frequency",
        fill = "Verb Type")+
   theme_classic()+
