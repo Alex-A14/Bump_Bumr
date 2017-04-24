@@ -467,9 +467,9 @@ bumpr_aacr %>%
                                    "Congruent", "Incongruent"))) %>%
   filter(!is.na(accuracy)) %>%
   ggplot(aes(accuracy, fill = mantype_pant))+
-  geom_bar(aes(y = (..count..)/sum(..count..)), position = "dodge")+
+  geom_bar(aes(y = (..count..)/sum(..count..)), position = "dodge", width=.6)+
   scale_y_continuous(labels = percent)+
-  labs(title = "Congruency between response and pantomime tasks",
+  labs(title = "Congruency between verb-rating and pantomime tasks",
        y = "Frequency",
        fill = "Verb Type")+
   theme_classic()+
