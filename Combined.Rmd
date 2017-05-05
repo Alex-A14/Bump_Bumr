@@ -203,8 +203,10 @@ bump_aacr %>%
   geom_point(position = "jitter", alpha =.2)+
   geom_smooth(method = "lm", se = FALSE)+
   labs(x = "EHI Score",
-       y = "Hand Contribution During Pantomime Task")+
-  scale_y_continuous(breaks = c(-5, 5), labels = c("Left-Hand", "Right-Hand"))+
+       y = "Pantomime Hand Contribution")+
+  scale_y_continuous(breaks = c(-5:5),
+                     labels = c("Left-Hand", "-4", "-3", "-2", "-1",
+                                "0", "1", "2", "3", "4", "Right-Hand"))+
   xlim(c(-100,100))+
   theme_classic()
 
@@ -469,12 +471,11 @@ bumpr_aacr %>%
   ggplot(aes(accuracy, fill = mantype_pant))+
   geom_bar(aes(y = (..count..)/sum(..count..)), position = "dodge", width=.6)+
   scale_y_continuous(labels = percent)+
-  labs(title = "Congruency between verb-rating and pantomime tasks",
-       y = "Frequency",
+  labs(y = "Frequency",
+       x = "Congruency between verb-rating and pantomime tasks",
        fill = "Verb Type")+
   theme_classic()+
-  theme(legend.position = c(.9,.9),
-        axis.title.x = element_blank())
+  theme(legend.position = c(.9,.9))
 
 ```
 
